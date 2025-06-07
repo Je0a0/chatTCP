@@ -1,5 +1,6 @@
 import java.io.*;
 import java.net.*;
+import java.util.Scanner;
 /*
  *  Cliente TCP - versão simplificada para o laboratório de redes
  *  
@@ -12,45 +13,96 @@ import java.net.*;
  */
 
 public class Cliente {
-   public static void main(String[] args) {
-      java.util.Scanner teclado = new java.util.Scanner(System.in);
-      String enderecoServidor;
-      int portaServidor;
-      
-      System.out.print("Endereço do servidor: ");
-      enderecoServidor=teclado.next();
-      System.out.print("Porta do servidor: ");
-      portaServidor=teclado.nextInt();
-      
-      try {
-         Socket commsock      = new Socket(enderecoServidor, portaServidor);
-         PrintStream output   = new PrintStream(commsock.getOutputStream());
-         BufferedReader input = new BufferedReader(new InputStreamReader(commsock.getInputStream()));
-	   
-         String fromServer,fromUser;
-         do { 
-            System.out.print("Mensagem a enviar para o servidor: ");
-	        fromUser = teclado.next();
-	        if (fromUser != null) {
-               output.println(fromUser);
-	           fromServer = input.readLine();
-               System.out.println("Resposta do servidor: " + fromServer);
-               if (fromServer.equals("goodbye"))
-                   break;
-	        }
-         } while (fromUser != null);
+    private Socket socket;
+    private PrintWriter out;
+    private BufferedReader in;
+    private String nomeUsuario;
+    private boolean conectado;
 
-         output.close();
-         input.close();
-         commsock.close();
-      } 
-      catch (UnknownHostException e) 
-      {
-         System.err.println("Erro ao conectar ao servidor: " + e);
-      } 
-      catch (Exception e) 
-      {
-         System.err.println("Erro:  " + e);
-      }
-   }
+    public Cliente() {
+        this.conectado = false;
+    }
+
+    public void conectar(String endereco, int porta, String nomeUsuario) throws IOException {
+        this.nomeUsuario = nomeUsuario;
+        socket = new Socket(endereco, porta);
+        out = new PrintWriter(socket.getOutputStream(), true);
+        in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+        
+        // Enviar nome de usuário
+        out.println(nomeUsuario);
+        conectado = true;
+        System.out.println("Conectado ao servidor!");
+
+        // Thread para receber mensagens
+        new Thread(() -> {
+            try {
+                String mensagem;
+                while (conectado && (mensagem = in.readLine()) != null) {
+                    System.out.println(mensagem);
+                }
+            } catch (IOException e) {
+                if (conectado) {
+                    System.out.println("Erro na conexão: " + e.getMessage());
+                    desconectar();
+                }
+            }
+        }).start();
+    }
+
+    public void desconectar() {
+        conectado = false;
+        try {
+            if (out != null) out.close();
+            if (in != null) in.close();
+            if (socket != null) socket.close();
+            System.out.println("Desconectado do servidor");
+        } catch (IOException e) {
+            System.out.println("Erro ao desconectar: " + e.getMessage());
+        }
+    }
+
+    public void enviarMensagem(String mensagem) {
+        if (conectado) {
+            out.println(mensagem);
+        }
+    }
+
+    public boolean estaConectado() {
+        return conectado;
+    }
+
+    public static void main(String[] args) {
+        Scanner teclado = new Scanner(System.in);
+        Cliente cliente = new Cliente();
+        
+        System.out.print("Digite seu nome: ");
+        String nomeUsuario = teclado.nextLine();
+        
+        System.out.print("Endereço do servidor: ");
+        String enderecoServidor = teclado.nextLine();
+        
+        System.out.print("Porta do servidor: ");
+        int portaServidor = teclado.nextInt();
+        teclado.nextLine(); // Limpar o buffer
+        
+        try {
+            cliente.conectar(enderecoServidor, portaServidor, nomeUsuario);
+            
+            String mensagem;
+            while (cliente.estaConectado()) {
+                mensagem = teclado.nextLine();
+                if (mensagem.equalsIgnoreCase("sair")) {
+                    break;
+                }
+                cliente.enviarMensagem(mensagem);
+            }
+            
+        } catch (Exception e) {
+            System.out.println("Erro: " + e.getMessage());
+        } finally {
+            cliente.desconectar();
+            teclado.close();
+        }
+    }
 }
