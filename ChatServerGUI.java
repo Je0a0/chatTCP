@@ -7,10 +7,11 @@ public class ChatServerGUI extends JFrame {
     private JButton iniciarButton;
     private JButton pararButton;
     private JLabel statusLabel;
+    private JTextField ipField;
+    private JTextField portaField;
     private Servidor servidor;
 
     public ChatServerGUI() {
-        servidor = new Servidor(4444);
         setupGUI();
     }
 
@@ -19,6 +20,24 @@ public class ChatServerGUI extends JFrame {
         setSize(600, 500);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
+
+        // Painel de configuração
+        JPanel configPanel = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(5, 5, 5, 5);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        gbc.gridx = 0; gbc.gridy = 0;
+        configPanel.add(new JLabel("IP:"), gbc);
+        gbc.gridx = 1;
+        ipField = new JTextField("localhost", 15);
+        configPanel.add(ipField, gbc);
+
+        gbc.gridx = 0; gbc.gridy = 1;
+        configPanel.add(new JLabel("Porta:"), gbc);
+        gbc.gridx = 1;
+        portaField = new JTextField("4444", 15);
+        configPanel.add(portaField, gbc);
 
         // Área de chat
         chatArea = new JTextArea();
@@ -45,17 +64,36 @@ public class ChatServerGUI extends JFrame {
 
         // Layout
         setLayout(new BorderLayout());
+        add(configPanel, BorderLayout.NORTH);
         add(scrollPane, BorderLayout.CENTER);
         add(controlPanel, BorderLayout.SOUTH);
     }
 
     private void iniciarServidor() {
         try {
+            String ip = ipField.getText().trim();
+            String portaStr = portaField.getText().trim();
+
+            if (ip.isEmpty() || portaStr.isEmpty()) {
+                JOptionPane.showMessageDialog(this, 
+                    "Por favor, preencha todos os campos",
+                    "Erro",
+                    JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            int porta = Integer.parseInt(portaStr);
+            servidor = new Servidor(porta);
             new Thread(() -> servidor.iniciar()).start();
             iniciarButton.setEnabled(false);
             pararButton.setEnabled(true);
             statusLabel.setText("Status: Conectado");
-            adicionarMensagem("Servidor iniciado na porta 4444");
+            adicionarMensagem("Servidor iniciado em " + ip + ":" + porta);
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, 
+                "Porta inválida. Digite um número válido.",
+                "Erro",
+                JOptionPane.ERROR_MESSAGE);
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this, 
                 "Erro ao iniciar servidor: " + e.getMessage(),
@@ -65,11 +103,13 @@ public class ChatServerGUI extends JFrame {
     }
 
     private void pararServidor() {
-        servidor.parar();
-        iniciarButton.setEnabled(true);
-        pararButton.setEnabled(false);
-        statusLabel.setText("Status: Desconectado");
-        adicionarMensagem("Servidor parado");
+        if (servidor != null) {
+            servidor.parar();
+            iniciarButton.setEnabled(true);
+            pararButton.setEnabled(false);
+            statusLabel.setText("Status: Desconectado");
+            adicionarMensagem("Servidor parado");
+        }
     }
 
     private void adicionarMensagem(String mensagem) {
