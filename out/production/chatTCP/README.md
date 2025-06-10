@@ -22,12 +22,12 @@ Este é um sistema de chat em tempo real desenvolvido em Java, utilizando socket
 
 1. Compile o servidor:
 ```bash
-javac ChatServerGUI.java
+javac src/ChatServerGUI.java
 ```
 
 2. Execute o servidor:
 ```bash
-java ChatServerGUI
+java -cp src ChatServerGUI
 ```
 
 3. Na interface do servidor:
@@ -39,12 +39,12 @@ java ChatServerGUI
 
 1. Compile o cliente:
 ```bash
-javac ChatClientGUI.java
+javac src/ChatClientGUI.java
 ```
 
 2. Execute o cliente:
 ```bash
-java ChatClientGUI
+java -cp src ChatClientGUI
 ```
 
 3. Na interface do cliente:
@@ -58,14 +58,31 @@ java ChatClientGUI
 Para conectar de outra máquina:
 
 1. No servidor:
+   - Descubra seu IP público:
+     - No Windows: Abra o cmd e digite `ipconfig`
+     - No Linux/Mac: Abra o terminal e digite `ifconfig` ou `ip addr`
+     - Ou use sites como whatismyip.com
    - Digite o IP público do servidor no campo IP
-   - Configure a porta desejada
+   - Configure a porta desejada (ex: 4444)
    - Clique em "Iniciar Servidor"
    - Configure o redirecionamento de porta no seu roteador:
-     - Porta externa: mesma porta configurada no servidor
-     - Porta interna: mesma porta configurada no servidor
-     - Protocolo: TCP
-   - Certifique-se que o firewall permite conexões na porta configurada
+     - Acesse a interface do roteador (geralmente 192.168.0.1 ou 192.168.1.1)
+     - Procure por "Port Forwarding" ou "Redirecionamento de Porta"
+     - Adicione uma nova regra:
+       - Nome: Chat TCP
+       - Porta externa: mesma porta configurada no servidor
+       - Porta interna: mesma porta configurada no servidor
+       - Protocolo: TCP
+       - IP interno: IP local do seu computador
+   - Configure o firewall do Windows:
+     - Abra o "Firewall do Windows Defender"
+     - Clique em "Regras de Entrada"
+     - Clique em "Nova Regra"
+     - Selecione "Porta"
+     - Selecione "TCP" e digite a porta configurada
+     - Selecione "Permitir a conexão"
+     - Marque todos os perfis
+     - Dê um nome (ex: "Chat TCP") e finalize
 
 2. No cliente:
    - Use o IP público do servidor como endereço
@@ -73,12 +90,39 @@ Para conectar de outra máquina:
    - Digite seu nome de usuário
    - Clique em "Conectar"
 
+### Solução de Problemas de Conexão Remota
+
+1. Se não conseguir conectar:
+   - Verifique se o servidor está rodando
+   - Confirme se o IP público está correto
+   - Teste se a porta está aberta:
+     - No Windows: `netstat -an | findstr "4444"`
+     - No Linux/Mac: `netstat -an | grep "4444"`
+   - Verifique se o redirecionamento de porta está configurado corretamente
+   - Teste se o firewall está permitindo conexões
+   - Tente desativar temporariamente o firewall para teste
+   - Verifique se o antivírus não está bloqueando a conexão
+
+2. Para testar se a porta está acessível:
+   - Use ferramentas online como portscanner.co
+   - Ou use o comando telnet:
+     - No Windows: `telnet seu_ip_publico 4444`
+     - No Linux/Mac: `nc -zv seu_ip_publico 4444`
+
 ## Estrutura do Projeto
 
-- `ChatServerGUI.java`: Interface gráfica do servidor
-- `ChatClientGUI.java`: Interface gráfica do cliente
-- `Servidor.java`: Implementação do servidor TCP
-- `Cliente.java`: Implementação do cliente TCP
+```
+chatTCP/
+├── src/
+│   ├── ChatServerGUI.java
+│   ├── ChatClientGUI.java
+│   ├── Servidor.java
+│   └── Cliente.java
+├── out/
+│   └── production/
+│       └── chatTCP/
+└── README.md
+```
 
 ## Comandos do Chat
 

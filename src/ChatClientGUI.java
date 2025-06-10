@@ -1,8 +1,11 @@
+package src;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.net.InetAddress;
 
-public class ChatClientGUI extends JFrame {
+public class ChatClientGUI extends JFrame implements Cliente.MensagemListener {
     private JTextArea chatArea;
     private JTextField mensagemField;
     private JButton enviarButton;
@@ -16,6 +19,7 @@ public class ChatClientGUI extends JFrame {
 
     public ChatClientGUI() {
         cliente = new Cliente();
+        cliente.addMensagemListener(this);
         setupGUI();
     }
 
@@ -92,6 +96,24 @@ public class ChatClientGUI extends JFrame {
         desconectarButton.addActionListener(e -> desconectar());
         enviarButton.addActionListener(e -> enviarMensagem());
         mensagemField.addActionListener(e -> enviarMensagem());
+
+        // Tratamento de fechamento da janela
+        addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                desconectar();
+            }
+        });
+    }
+
+    private boolean validarIP(String ip) {
+        try {
+            if (ip.equals("localhost")) return true;
+            InetAddress.getByName(ip);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     private void conectar() {
@@ -107,8 +129,24 @@ public class ChatClientGUI extends JFrame {
             return;
         }
 
+        if (!validarIP(servidor)) {
+            JOptionPane.showMessageDialog(this, 
+                "Endereço do servidor inválido",
+                "Erro",
+                JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
         try {
             int porta = Integer.parseInt(portaStr);
+            if (porta < 1 || porta > 65535) {
+                JOptionPane.showMessageDialog(this, 
+                    "Porta inválida. Use uma porta entre 1 e 65535",
+                    "Erro",
+                    JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
             cliente.conectar(servidor, porta, nome);
             conectarButton.setEnabled(false);
             desconectarButton.setEnabled(true);
@@ -145,6 +183,11 @@ public class ChatClientGUI extends JFrame {
             chatArea.append(mensagem + "\n");
             chatArea.setCaretPosition(chatArea.getDocument().getLength());
         });
+    }
+
+    @Override
+    public void onMensagemRecebida(String mensagem) {
+        adicionarMensagem(mensagem);
     }
 
     public static void main(String[] args) {

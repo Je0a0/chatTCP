@@ -1,8 +1,11 @@
+package src;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.net.InetAddress;
 
-public class ChatServerGUI extends JFrame {
+public class ChatServerGUI extends JFrame implements Servidor.MensagemListener {
     private JTextArea chatArea;
     private JButton iniciarButton;
     private JButton pararButton;
@@ -30,7 +33,7 @@ public class ChatServerGUI extends JFrame {
         gbc.gridx = 0; gbc.gridy = 0;
         configPanel.add(new JLabel("IP:"), gbc);
         gbc.gridx = 1;
-        ipField = new JTextField("localhost", 15);
+        ipField = new JTextField("0.0.0.0", 15);
         configPanel.add(ipField, gbc);
 
         gbc.gridx = 0; gbc.gridy = 1;
@@ -69,6 +72,16 @@ public class ChatServerGUI extends JFrame {
         add(controlPanel, BorderLayout.SOUTH);
     }
 
+    private boolean validarIP(String ip) {
+        try {
+            if (ip.equals("0.0.0.0")) return true;
+            InetAddress.getByName(ip);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     private void iniciarServidor() {
         try {
             String ip = ipField.getText().trim();
@@ -82,13 +95,29 @@ public class ChatServerGUI extends JFrame {
                 return;
             }
 
+            if (!validarIP(ip)) {
+                JOptionPane.showMessageDialog(this, 
+                    "IP inválido",
+                    "Erro",
+                    JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
             int porta = Integer.parseInt(portaStr);
+            if (porta < 1 || porta > 65535) {
+                JOptionPane.showMessageDialog(this, 
+                    "Porta inválida. Use uma porta entre 1 e 65535",
+                    "Erro",
+                    JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
             servidor = new Servidor(porta);
+            servidor.addMensagemListener(this);
             new Thread(() -> servidor.iniciar()).start();
             iniciarButton.setEnabled(false);
             pararButton.setEnabled(true);
             statusLabel.setText("Status: Conectado");
-            adicionarMensagem("Servidor iniciado em " + ip + ":" + porta);
         } catch (NumberFormatException e) {
             JOptionPane.showMessageDialog(this, 
                 "Porta inválida. Digite um número válido.",
@@ -110,6 +139,11 @@ public class ChatServerGUI extends JFrame {
             statusLabel.setText("Status: Desconectado");
             adicionarMensagem("Servidor parado");
         }
+    }
+
+    @Override
+    public void onMensagemRecebida(String mensagem) {
+        adicionarMensagem(mensagem);
     }
 
     private void adicionarMensagem(String mensagem) {
